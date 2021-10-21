@@ -21,11 +21,12 @@ class QueryBuilder:
         return self
 
     def select(self, name: str, alias: Optional[str] = None,
-               args: Optional[dict[str, Value]] = None) -> QueryBuilder:
+               args: Optional[dict[str, Value]] = None, fields: Optional[list[Field]] = None) -> QueryBuilder:
         arguments = [Argument(name, value) for name, value in sorted(args.items())] if args else None
-        self._selection_set.append(Selection(Field(alias=alias, name=name, arguments=arguments, selection_set=None)))
+        inner_selections = [Selection(field) for field in fields] if fields else None
+        self._selection_set.append(
+            Selection(Field(name, alias, arguments, inner_selections)))
         return self
 
     def build(self) -> Query:
-        return Query(name=self._name, variable_definitions=self._variable_definitions,
-                     selection_set=self._selection_set)
+        return Query(self._selection_set, self._name, self._variable_definitions)

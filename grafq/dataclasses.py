@@ -46,12 +46,12 @@ class NonNullType(VariableType):
 class VariableDefinition:
     name: str
     type: VariableType
-    default_value: Optional[Value]
+    default_value: Optional[Value] = None
 
     def __str__(self) -> str:
-        s = f"${self.name}: {self.type}"
+        s = f"${self.name}:{self.type}"
         if self.default_value is not None:
-            s += f" = {self.default_value}"
+            s += f"={self.default_value}"
         return s
 
 
@@ -61,26 +61,26 @@ class Argument:
     value: Value
 
     def __str__(self) -> str:
-        return f"{self.name}: {self.value}"
+        return f"{self.name}:{self.value}"
 
 
 @dataclass(frozen=True)
 class Field:
-    alias: Optional[str]
     name: str
-    arguments: Optional[list[Argument]]
+    alias: Optional[str] = None
+    arguments: Optional[list[Argument]] = None
     # todo: directives
-    selection_set: Optional[list[Selection]]
+    selection_set: Optional[list[Selection]] = None
 
     def __str__(self) -> str:
         s = ""
         if self.alias:
-            s += self.alias + ': '
+            s += self.alias + ':'
         s += self.name
         if self.arguments:
-            s += '(' + ', '.join(str(argument) for argument in self.arguments) + ')'
+            s += '(' + ','.join(str(argument) for argument in self.arguments) + ')'
         if self.selection_set:
-            s += ' { ' + ' '.join(str(selection) for selection in self.selection_set) + ' }'
+            s += '{' + ','.join(str(selection) for selection in self.selection_set) + '}'
         return s
 
 
@@ -97,21 +97,20 @@ class Selection:
 
 @dataclass(frozen=True)
 class Query:
-    name: Optional[str]
-    variable_definitions: Optional[list[VariableDefinition]]
-    # todo: directives
     selection_set: list[Selection]
+    name: Optional[str] = None
+    variable_definitions: Optional[list[VariableDefinition]] = None
+    shorthand: bool = True
+
+    # todo: directives
 
     def __str__(self) -> str:
-        if self.variable_definitions:
-            s = "query "
-            if self.name:
-                s += self.name
-            s += '(' + ', '.join(str(definition) for definition in self.variable_definitions) + ') '
-        else:
+        if self.shorthand and not self.variable_definitions:
             s = ""
-        if self.selection_set:
-            s += '{ ' + ' '.join(str(selection) for selection in self.selection_set) + ' }'
         else:
-            s += '{ }'
-        return s
+            s = "query"
+            if self.name:
+                s += ' ' + self.name
+            if self.variable_definitions:
+                s += '(' + ','.join(str(definition) for definition in self.variable_definitions) + ')'
+        return s + '{' + ','.join(str(selection) for selection in self.selection_set) + '}'
