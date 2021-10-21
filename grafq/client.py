@@ -3,7 +3,7 @@ from typing import Optional
 import requests
 
 from grafq.errors import OperationErrors
-from grafq.query import Query, Value
+from grafq.query import Query, ValueInnerType
 
 
 class Client:
@@ -14,7 +14,7 @@ class Client:
         if token:
             self._session.headers['Authorization'] = f"Bearer {token}"
 
-    def get(self, query: Query, variables: Optional[dict[str, Value]] = None) -> dict:
+    def get(self, query: Query, variables: Optional[dict[str, ValueInnerType]] = None) -> dict:
         payload = {'query': str(query)}
         if variables:
             payload['variables'] = variables
@@ -24,7 +24,7 @@ class Client:
             raise OperationErrors(errors)
         return decoded.get('data')
 
-    def post(self, query: Query, variables: Optional[dict[str, Value]] = None) -> dict:
+    def post(self, query: Query, variables: Optional[dict[str, ValueInnerType]] = None) -> dict:
         payload = {'query': str(query)}
         if variables:
             payload['variables'] = variables

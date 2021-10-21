@@ -6,16 +6,45 @@ from enum import Enum
 from typing import Optional, Union
 
 
-# Need to distinguish from None for optional fields
-class Null:
-    pass
-
-
-Value = Union[str, int, float, bool, Null, Enum, list['Value'], dict[str, 'Value']]
-
-
 def indent(text: str):
     return '\n'.join('  ' + line for line in text.splitlines())
+
+
+# Need to distinguish from None for optional fields
+class Null:
+    def __str__(self):
+        return 'null'
+
+
+@dataclass(frozen=True)
+class Value:
+    inner: ValueInnerType
+
+    def __str__(self):
+        return _str(self.inner)
+
+
+@dataclass
+class VarRef:
+    name: str
+
+    def __str__(self):
+        return f"${self.name}"
+
+
+ValueInnerType = Union[str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef]
+
+
+def _str(value: ValueInnerType) -> str:
+    if isinstance(value, str):
+        return f'"{value}"'
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, list):
+        return '[' + ', '.join(_str(v) for v in value) + ']'
+    if isinstance(value, dict):
+        return '{' + ', '.join(f"{k}: {_str(v)}" for k, v in value.items()) + '}'
+    return str(value)
 
 
 @dataclass(frozen=True)
@@ -83,7 +112,6 @@ class Field:
     name: str
     alias: Optional[str] = None
     arguments: Optional[list[Argument]] = None
-    # todo: directives
     selection_set: Optional[list[Selection]] = None
 
     def pretty(self) -> str:
@@ -114,9 +142,6 @@ class Field:
 class Selection:
     field: Field
 
-    # todo: fragment_spread
-    # todo: inline_fragment
-
     def pretty(self) -> str:
         return self.field.pretty()
 
@@ -130,8 +155,6 @@ class Query:
     name: Optional[str] = None
     variable_definitions: Optional[list[VariableDefinition]] = None
     shorthand: bool = True
-
-    # todo: directives
 
     def pretty(self) -> str:
         if self.shorthand and not self.variable_definitions:
