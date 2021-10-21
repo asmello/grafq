@@ -1,4 +1,4 @@
-from grafq.dataclasses import NamedType, Field
+from grafq.query import NamedType, Field
 from grafq.query_builder import QueryBuilder
 
 

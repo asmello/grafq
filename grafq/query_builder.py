@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from grafq.dataclasses import VariableDefinition, VariableType, Value, Selection, Field, Query, Argument
+from grafq.query import VariableDefinition, VariableType, Value, Selection, Field, Query, Argument
 
 
 class QueryBuilder:

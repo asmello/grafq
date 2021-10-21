@@ -14,6 +14,10 @@ class Null:
 Value = Union[str, int, float, bool, Null, Enum, list['Value'], dict[str, 'Value']]
 
 
+def indent(text: str):
+    return '\n'.join('  ' + line for line in text.splitlines())
+
+
 @dataclass(frozen=True)
 class VariableType(ABC):
     pass
@@ -82,7 +86,7 @@ class Field:
     # todo: directives
     selection_set: Optional[list[Selection]] = None
 
-    def pretty(self, indent=0) -> str:
+    def pretty(self) -> str:
         s = ""
         if self.alias:
             s += self.alias + ': '
@@ -90,8 +94,8 @@ class Field:
         if self.arguments:
             s += '(' + ', '.join(argument.pretty() for argument in self.arguments) + ')'
         if self.selection_set:
-            s += ' {\n' + ''.join(
-                selection.pretty(indent + 2) + '\n' for selection in self.selection_set) + ' ' * indent + '}'
+            selections = '\n'.join(indent(selection.pretty()) for selection in self.selection_set)
+            s += ' {\n' + selections + '\n}'
         return s
 
     def __str__(self) -> str:
@@ -102,7 +106,7 @@ class Field:
         if self.arguments:
             s += '(' + ','.join(str(argument) for argument in self.arguments) + ')'
         if self.selection_set:
-            s += '{' + ','.join(str(selection) for selection in self.selection_set) + ' }'
+            s += '{' + ','.join(str(selection) for selection in self.selection_set) + '}'
         return s
 
 
@@ -113,8 +117,8 @@ class Selection:
     # todo: fragment_spread
     # todo: inline_fragment
 
-    def pretty(self, indent=0) -> str:
-        return ' ' * indent + self.field.pretty(indent)
+    def pretty(self) -> str:
+        return self.field.pretty()
 
     def __str__(self) -> str:
         return str(self.field)
@@ -140,7 +144,10 @@ class Query:
                 s += '(' + ', '.join(definition.pretty() for definition in self.variable_definitions) + ') '
             else:
                 s += ' '
-        return s + '{\n' + ''.join(selection.pretty(2) + '\n' for selection in self.selection_set) + '}'
+        if self.selection_set:
+            return s + '{\n' + '\n'.join(indent(selection.pretty()) for selection in self.selection_set) + '\n}'
+        else:
+            return s + '{ }'
 
     def __str__(self) -> str:
         if self.shorthand and not self.variable_definitions:
