@@ -21,6 +21,11 @@ class TestQueryBuilder(TestCase):
         self.assertEqual("query foo($myVar:myType){}", str(query))
         self.assertEqual("query foo($myVar: myType) { }", query.pretty())
 
+    def test_var_type_by_name(self):
+        query = QueryBuilder().name("foo").var("myVar", "myType").build()
+        self.assertEqual("query foo($myVar:myType){}", str(query))
+        self.assertEqual("query foo($myVar: myType) { }", query.pretty())
+
     def test_one_var_with_default(self):
         query = QueryBuilder().name("foo").var("myVar", NamedType("myType"), default=42).build()
         self.assertEqual("query foo($myVar:myType=42){}", str(query))
@@ -43,6 +48,11 @@ class TestQueryBuilder(TestCase):
 
     def test_inner_fields(self):
         query = QueryBuilder().select("me", fields=[Field("name")]).build()
+        self.assertEqual("{me{name}}", str(query))
+        self.assertEqual("{\n  me {\n    name\n  }\n}", query.pretty())
+
+    def test_field_by_name(self):
+        query = QueryBuilder().select("me", fields=["name"]).build()
         self.assertEqual("{me{name}}", str(query))
         self.assertEqual("{\n  me {\n    name\n  }\n}", query.pretty())
 
