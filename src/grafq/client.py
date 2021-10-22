@@ -1,9 +1,9 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 import requests
 
-from grafq.errors import OperationErrors
-from grafq.language import Query, ValueInnerType
+from src.grafq.errors import OperationErrors
+from src.grafq.language import Query, ValueInnerType
 
 
 class Client:

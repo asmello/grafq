@@ -5,8 +5,8 @@
 ## Example
 
 ```python
-from grafq import Field, Var, QueryBuilder
-from grafq.client import Client
+from src.grafq import Field, Var, QueryBuilder
+from src.grafq.client import Client
 
 client = Client("https://api.github.com/graphql", token=TOKEN)
 
@@ -15,14 +15,14 @@ data = client.get(simple)
 
 complex = (
     QueryBuilder()
-    .var("size", "Int")
-    .select(
+        .var("size", "Int")
+        .select(
         Field("viewer").select(
             "login", "name", Field("avatarUrl", size=Var("size"))
         ),
         Field("repository", owner="asmello").arg("name", "grafq").select("url"),
     )
-    .build()
+        .build()
 )
 data = client.post(complex, variables={"size": 200})
 ```

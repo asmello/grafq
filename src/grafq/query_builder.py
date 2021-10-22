@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-from grafq.client import Client
-from grafq.field import Field, _coerce_field
-from grafq.language import (
+from src.grafq.client import Client
+from src.grafq.field import Field, _coerce_field
+from src.grafq.language import (
     VariableDefinition,
     VariableType,
     Value,

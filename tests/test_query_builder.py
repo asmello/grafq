@@ -1,8 +1,8 @@
 from unittest import TestCase, main
 
-from grafq.field import Field
-from grafq.language import NamedType, Selection, VarRef
-from grafq.query_builder import QueryBuilder
+from src.grafq import Field
+from src.grafq.language import NamedType, VarRef
+from src.grafq.query_builder import QueryBuilder
 
 
 class TestQueryBuilder(TestCase):

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections import Iterable, Generator
+from collections.abc import Iterable
 from typing import Optional, Union
 
-from grafq.language import (
+from src.grafq.language import (
     Argument,
     Value,
     Field as FrozenField,

@@ -1,7 +1,7 @@
 import os
 
-from grafq import Field, Var, QueryBuilder
-from grafq.client import Client
+from src.grafq import Field, Var, QueryBuilder
+from src.grafq.client import Client
 
 
 def main():
