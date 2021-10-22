@@ -7,16 +7,16 @@ from typing import Optional, Union
 
 
 def indent(text: str):
-    return '\n'.join('  ' + line for line in text.splitlines())
+    return "\n".join("  " + line for line in text.splitlines())
 
 
 # Need to distinguish from None for optional fields
 class Null:
     def __str__(self):
-        return 'null'
+        return "null"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Value:
     inner: ValueInnerType
 
@@ -24,7 +24,7 @@ class Value:
         return _str(self.inner)
 
 
-@dataclass
+@dataclass(frozen=True, order=True)
 class VarRef:
     name: str
 
@@ -32,7 +32,9 @@ class VarRef:
         return f"${self.name}"
 
 
-ValueInnerType = Union[str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef]
+ValueInnerType = Union[
+    str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef
+]
 
 
 def _str(value: ValueInnerType) -> str:
@@ -41,18 +43,18 @@ def _str(value: ValueInnerType) -> str:
     if isinstance(value, bool):
         return str(value).lower()
     if isinstance(value, list):
-        return '[' + ', '.join(_str(v) for v in value) + ']'
+        return "[" + ", ".join(_str(v) for v in value) + "]"
     if isinstance(value, dict):
-        return '{' + ', '.join(f"{k}: {_str(v)}" for k, v in value.items()) + '}'
+        return "{" + ", ".join(f"{k}: {_str(v)}" for k, v in value.items()) + "}"
     return str(value)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class VariableType(ABC):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class NamedType(VariableType):
     name: str
 
@@ -60,7 +62,7 @@ class NamedType(VariableType):
         return self.name
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class ListType(VariableType):
     subtype: VariableType
 
@@ -68,7 +70,7 @@ class ListType(VariableType):
         return f"[{self.subtype}]"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class NonNullType(VariableType):
     subtype: Union[NamedType, ListType]
 
@@ -76,7 +78,7 @@ class NonNullType(VariableType):
         return f"{self.subtype}!"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class VariableDefinition:
     name: str
     type: VariableType
@@ -95,7 +97,7 @@ class VariableDefinition:
         return s
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Argument:
     name: str
     value: Value
@@ -107,7 +109,7 @@ class Argument:
         return f"{self.name}:{self.value}"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Field:
     name: str
     alias: Optional[str] = None
@@ -117,28 +119,32 @@ class Field:
     def pretty(self) -> str:
         s = ""
         if self.alias:
-            s += self.alias + ': '
+            s += self.alias + ": "
         s += self.name
         if self.arguments:
-            s += '(' + ', '.join(argument.pretty() for argument in self.arguments) + ')'
+            s += "(" + ", ".join(argument.pretty() for argument in self.arguments) + ")"
         if self.selection_set:
-            selections = '\n'.join(indent(selection.pretty()) for selection in self.selection_set)
-            s += ' {\n' + selections + '\n}'
+            selections = "\n".join(
+                indent(selection.pretty()) for selection in self.selection_set
+            )
+            s += " {\n" + selections + "\n}"
         return s
 
     def __str__(self) -> str:
         s = ""
         if self.alias:
-            s += self.alias + ':'
+            s += self.alias + ":"
         s += self.name
         if self.arguments:
-            s += '(' + ','.join(str(argument) for argument in self.arguments) + ')'
+            s += "(" + ",".join(str(argument) for argument in self.arguments) + ")"
         if self.selection_set:
-            s += '{' + ','.join(str(selection) for selection in self.selection_set) + '}'
+            s += (
+                "{" + ",".join(str(selection) for selection in self.selection_set) + "}"
+            )
         return s
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Selection:
     field: Field
 
@@ -162,15 +168,28 @@ class Query:
         else:
             s = "query"
             if self.name:
-                s += ' ' + self.name
+                s += " " + self.name
             if self.variable_definitions:
-                s += '(' + ', '.join(definition.pretty() for definition in self.variable_definitions) + ') '
+                s += (
+                    "("
+                    + ", ".join(
+                        definition.pretty() for definition in self.variable_definitions
+                    )
+                    + ") "
+                )
             else:
-                s += ' '
+                s += " "
         if self.selection_set:
-            return s + '{\n' + '\n'.join(indent(selection.pretty()) for selection in self.selection_set) + '\n}'
+            return (
+                s
+                + "{\n"
+                + "\n".join(
+                    indent(selection.pretty()) for selection in self.selection_set
+                )
+                + "\n}"
+            )
         else:
-            return s + '{ }'
+            return s + "{ }"
 
     def __str__(self) -> str:
         if self.shorthand and not self.variable_definitions:
@@ -178,7 +197,15 @@ class Query:
         else:
             s = "query"
             if self.name:
-                s += ' ' + self.name
+                s += " " + self.name
             if self.variable_definitions:
-                s += '(' + ','.join(str(definition) for definition in self.variable_definitions) + ')'
-        return s + '{' + ','.join(str(selection) for selection in self.selection_set) + '}'
+                s += (
+                    "("
+                    + ",".join(
+                        str(definition) for definition in self.variable_definitions
+                    )
+                    + ")"
+                )
+        return (
+            s + "{" + ",".join(str(selection) for selection in self.selection_set) + "}"
+        )

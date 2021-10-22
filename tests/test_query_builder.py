@@ -1,8 +1,8 @@
 from unittest import TestCase, main
 
-from grafq.query import NamedType, Field, Selection
+from grafq.field import Field
+from grafq.language import NamedType, Selection, VarRef
 from grafq.query_builder import QueryBuilder
-from grafq.selector import Selector
 
 
 class TestQueryBuilder(TestCase):
@@ -37,109 +37,76 @@ class TestQueryBuilder(TestCase):
         self.assertEqual("query foo($myVar: myType = 42) { }", query.pretty())
 
     def test_one_selection(self):
-        query = QueryBuilder().select_field("myAddress").build()
+        query = QueryBuilder().select("myAddress").build()
         self.assertEqual("{myAddress}", str(query))
         self.assertEqual("{\n  myAddress\n}", query.pretty())
 
     def test_alias(self):
-        query = QueryBuilder().select_field("myAddress", alias="myAlias").build()
+        query = QueryBuilder().select(Field("myAddress").alias("myAlias")).build()
         self.assertEqual("{myAlias:myAddress}", str(query))
         self.assertEqual("{\n  myAlias: myAddress\n}", query.pretty())
 
     def test_arguments(self):
-        query = QueryBuilder().select_field("user", args={"id": 4}).build()
+        query = QueryBuilder().select(Field("user", id=4)).build()
         self.assertEqual("{user(id:4)}", str(query))
         self.assertEqual("{\n  user(id: 4)\n}", query.pretty())
 
-    def test_inner_fields(self):
-        query = QueryBuilder().select_field("me", subfields=[Field("name")]).build()
+    def test_inner_field(self):
+        query = QueryBuilder().select(Field("me").select("name")).build()
         self.assertEqual("{me{name}}", str(query))
         self.assertEqual("{\n  me {\n    name\n  }\n}", query.pretty())
 
-    def test_field_by_name(self):
-        query = QueryBuilder().select_field("me", subfields=["name"]).build()
+    def test_inner_field_by_path(self):
+        query = QueryBuilder().select("me.name").build()
         self.assertEqual("{me{name}}", str(query))
         self.assertEqual("{\n  me {\n    name\n  }\n}", query.pretty())
 
     def test_multiple_fields(self):
-        query = (
-            QueryBuilder()
-            .select_field(
-                "me",
-                subfields=[
-                    Field("name"),
-                    Field("friends", selection_set=[Selection(Field("name"))]),
-                ],
-            )
-            .build()
-        )
-        self.assertEqual("{me{name,friends{name}}}", str(query))
+        query = QueryBuilder().select("me.name", "me.friends.name").build()
+        self.assertEqual("{me{friends{name},name}}", str(query))
         self.assertEqual(
-            "{\n  me {\n    name\n    friends {\n      name\n    }\n  }\n}",
+            "{\n  me {\n    friends {\n      name\n    }\n    name\n  }\n}",
             query.pretty(),
         )
 
     def test_multiple_selects(self):
-        query = (
-            QueryBuilder()
-            .select_field("other")
-            .select_field("me", subfields=[Field("name")])
-            .build()
-        )
-        self.assertEqual("{other,me{name}}", str(query))
-        self.assertEqual("{\n  other\n  me {\n    name\n  }\n}", query.pretty())
+        query = QueryBuilder().select("other").select("me.name").build()
+        self.assertEqual("{me{name},other}", str(query))
+        self.assertEqual("{\n  me {\n    name\n  }\n  other\n}", query.pretty())
 
-    def test_all_together(self):
+    def test_composed(self):
         query = (
             QueryBuilder()
             .name("foo")
             .var("myVar", NamedType("myType"), default=42)
-            .select_field("other")
-            .select_field("myAddress", alias="myAlias", args={"id": 4})
+            .select("other")
+            .select(Field("myAddress", id=4).alias("myAlias"))
             .build()
         )
         self.assertEqual(
-            "query foo($myVar:myType=42){other,myAlias:myAddress(id:4)}", str(query)
+            "query foo($myVar:myType=42){myAlias:myAddress(id:4),other}", str(query)
         )
         self.assertEqual(
-            "query foo($myVar: myType = 42) {\n  other\n  myAlias: myAddress(id: 4)\n}",
+            "query foo($myVar: myType = 42) {\n  myAlias: myAddress(id: 4)\n  other\n}",
             query.pretty(),
         )
 
-    def test_select(self):
+    def test_composed_nested(self):
         query = (
             QueryBuilder()
+            .var("size", "Int")
             .select(
-                Selector()
-                .add("myAddress", alias="myAlias", args={"id": 4})
-                .add("other")
-                .render()
+                Field("viewer").select(
+                    "login", "name", Field("avatarUrl", size=VarRef("size"))
+                ),
+                Field("repository", owner="asmello").arg("name", "grafq").select("url"),
             )
             .build()
         )
-        self.assertEqual("{myAlias:myAddress(id:4),other}", str(query))
-
-    def test_select_multiple(self):
-        query = (
-            QueryBuilder()
-            .select(
-                Selector().add("myAddress", alias="myAlias", args={"id": 4}).render()
-            )
-            .select(Selector().add("other").render())
-            .build()
+        self.assertEqual(
+            'query($size:Int){repository(name:"grafq",owner:"asmello"){url},viewer{avatarUrl(size:$size),login,name}}',
+            str(query),
         )
-        self.assertEqual("{myAlias:myAddress(id:4),other}", str(query))
-
-    def test_select_and_select_field(self):
-        query = (
-            QueryBuilder()
-            .select(
-                Selector().add("myAddress", alias="myAlias", args={"id": 4}).render()
-            )
-            .select_field("other")
-            .build()
-        )
-        self.assertEqual("{myAlias:myAddress(id:4),other}", str(query))
 
 
 if __name__ == "__main__":

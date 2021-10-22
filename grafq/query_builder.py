@@ -2,24 +2,25 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-from grafq.query import (
+from grafq.client import Client
+from grafq.field import Field, coerce_field
+from grafq.language import (
     VariableDefinition,
     VariableType,
     Value,
     Selection,
-    Field,
     Query,
-    Argument,
     NamedType,
     ValueInnerType,
 )
 
 
 class QueryBuilder:
-    def __init__(self):
+    def __init__(self, client: Optional[Client] = None):
+        self._client = client
         self._name: Optional[str] = None
         self._variable_definitions: list[VariableDefinition] = []
-        self._selection_set: list[Selection] = []
+        self._selection_set: set[Selection] = set()
 
     def name(self, name: str) -> QueryBuilder:
         self._name = name
@@ -38,33 +39,25 @@ class QueryBuilder:
         self._variable_definitions.append(VariableDefinition(name, var_type, default))
         return self
 
-    def select_field(
+    def select(self, *fields: Union[str, Field]) -> QueryBuilder:
+        fields = (coerce_field(field) for field in fields)
+        self._selection_set = set(Field.combine([*self._selection_set, *fields]))
+        return self
+
+    def build(self, shorthand: bool = True) -> Query:
+        return Query(
+            sorted(Selection(field.freeze()) for field in self._selection_set),
+            self._name,
+            self._variable_definitions,
+            shorthand,
+        )
+
+    def execute(
         self,
-        name: str,
-        alias: Optional[str] = None,
-        args: Optional[dict[str, ValueInnerType]] = None,
-        subfields: Optional[list[Union[Field, str]]] = None,
-    ) -> QueryBuilder:
-        arguments = (
-            [Argument(name, Value(value)) for name, value in sorted(args.items())]
-            if args
-            else None
-        )
-        inner_selections = []
-        for field in subfields or ():
-            if isinstance(field, str):
-                field = Field(field)
-            inner_selections.append(Selection(field))
-        self._selection_set.append(
-            Selection(Field(name, alias, arguments, inner_selections))
-        )
-        return self
-
-    def select(self, selection: Union[list[Selection], Selection]) -> QueryBuilder:
-        if isinstance(selection, Selection):
-            selection = [selection]
-        self._selection_set.extend(selection)
-        return self
-
-    def build(self) -> Query:
-        return Query(self._selection_set, self._name, self._variable_definitions)
+        client: Optional[Client] = None,
+        variables: Optional[dict[str, ValueInnerType]] = None,
+    ) -> dict:
+        client = client or self._client
+        if not client:
+            raise RuntimeError("Must provide a client to execute query")
+        return client.post(self.build(), variables)
