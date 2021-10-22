@@ -1,7 +1,7 @@
 import os
 
-from grafq.client import Client
 from grafq import Field, Var, QueryBuilder
+from grafq.client import Client
 
 
 def main():
@@ -20,7 +20,6 @@ def main():
         )
         .build()
     )
-    print(str(query))
     client = Client("https://api.github.com/graphql", token=token)
     data = client.post(query, variables={"size": 200})
     print(data)
