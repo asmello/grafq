@@ -20,6 +20,7 @@ class Field:
             while len(parts) > 1:
                 child = Field(parts.pop(0))
                 node._fields = {child}
+                child._parent = node
                 node = child
             node._fields = {self}
             self._parent = node
@@ -87,6 +88,13 @@ class Field:
         return FrozenField(
             self._name,
             self._alias,
-            arguments,
-            selection_set,
+            arguments or None,
+            selection_set or None,
         )
+
+    def root(self) -> Field:
+        if node := self._parent:
+            while node._parent:
+                node = node._parent
+            return node
+        return self

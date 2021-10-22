@@ -4,7 +4,7 @@ from unittest import TestCase, main
 from grafq.client import Client
 
 
-class TestQueryBuilder(TestCase):
+class TestSchema(TestCase):
     def setUp(self) -> None:
         token = os.environ.get("GITHUB_TOKEN")
         if not token:
