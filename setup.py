@@ -11,4 +11,5 @@ setup(
     author="André Sá de Mello",
     author_email="asmello.br@gmail.com",
     description="A pythonic way to build GraphQL queries",
+    install_requires=["requests"],
 )
