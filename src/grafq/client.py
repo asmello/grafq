@@ -1,9 +1,12 @@
+from json import JSONDecodeError
 from typing import Optional
 
 import requests
 
-from src.grafq.errors import OperationErrors
-from src.grafq.language import Query, ValueInnerType
+from grafq.errors import OperationErrors, RemoteError
+from grafq.language import Query, ValueInnerType
+from grafq.query_builder import QueryBuilder
+from grafq.schema import Schema
 
 
 class Client:
@@ -20,7 +23,10 @@ class Client:
         if variables:
             payload["variables"] = variables
         resp = self._session.get(self._url, params=payload)
-        decoded = resp.json()
+        try:
+            decoded = resp.json()
+        except JSONDecodeError as e:
+            raise RemoteError(resp.text) from e
         if errors := decoded.get("errors"):
             raise OperationErrors(errors)
         return decoded.get("data")
@@ -32,7 +38,16 @@ class Client:
         if variables:
             payload["variables"] = variables
         resp = self._session.post(self._url, json=payload)
-        decoded = resp.json()
+        try:
+            decoded = resp.json()
+        except JSONDecodeError as e:
+            raise RemoteError(resp.text) from e
         if errors := decoded.get("errors"):
             raise OperationErrors(errors)
         return decoded.get("data")
+
+    def new_query(self) -> QueryBuilder:
+        return QueryBuilder(client=self)
+
+    def schema(self) -> Schema:
+        return Schema(client=self, fetch=True)
