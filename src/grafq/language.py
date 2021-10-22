@@ -3,7 +3,10 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from grafq.client import Client
 
 
 def _indent(text: str):
@@ -161,6 +164,17 @@ class Query:
     name: Optional[str] = None
     variable_definitions: Optional[list[VariableDefinition]] = None
     shorthand: bool = True
+    client: Optional[Client] = None
+
+    def execute(
+        self,
+        variables: Optional[dict[str, ValueInnerType]] = None,
+        client: Optional[Client] = None,
+    ) -> dict:
+        client = client or self.client
+        if not client:
+            raise RuntimeError("Must provide a client to execute query")
+        return client.post(self, variables)
 
     def pretty(self) -> str:
         if self.shorthand and not self.variable_definitions:

@@ -16,13 +16,19 @@ class OperationError:
 
 
 class OperationErrors(Exception):
-
     def __init__(self, errors: list[dict]):
         self.errors = [
             OperationError(
-                error['message'],
-                locations=[Location(location['line'], location['column']) for location in error.get('locations', ())],
-                path=error.get('path')
+                error["message"],
+                locations=[
+                    Location(location["line"], location["column"])
+                    for location in error.get("locations", ())
+                ],
+                path=error.get("path"),
             )
             for error in errors
         ]
+
+
+class RemoteError(Exception):
+    pass

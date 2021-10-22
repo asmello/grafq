@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
-from src.grafq.client import Client
-from src.grafq.field import Field, _coerce_field
-from src.grafq.language import (
+if TYPE_CHECKING:
+    from grafq.schema import Schema
+    from grafq.client import Client
+from grafq.field import Field
+from grafq.language import (
     VariableDefinition,
     VariableType,
     Value,
@@ -16,7 +18,9 @@ from src.grafq.language import (
 
 
 class QueryBuilder:
-    def __init__(self, client: Optional[Client] = None):
+    def __init__(
+        self, client: Optional[Client] = None, schema: Optional[Schema] = None
+    ):
         self._client = client
         self._name: Optional[str] = None
         self._variable_definitions: list[VariableDefinition] = []
@@ -40,7 +44,7 @@ class QueryBuilder:
         return self
 
     def select(self, *fields: Union[str, Field]) -> QueryBuilder:
-        fields = (_coerce_field(field) for field in fields)
+        fields = (Field.coerce_field(field) for field in fields)
         self._fields = set(Field.combine([*self._fields, *fields]))
         return self
 
@@ -52,9 +56,10 @@ class QueryBuilder:
             self._name,
             self._variable_definitions,
             shorthand,
+            client=self._client,
         )
 
-    def execute(
+    def build_and_execute(
         self,
         client: Optional[Client] = None,
         variables: Optional[dict[str, ValueInnerType]] = None,

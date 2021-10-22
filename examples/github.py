@@ -1,27 +1,27 @@
 import os
 
-from src.grafq import Field, Var, QueryBuilder
-from src.grafq.client import Client
+from grafq import Field, Var
+from grafq.client import Client
 
 
 def main():
-    token = os.environ.get("TOKEN")
+    token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        raise RuntimeError("Must specify token in environment variable TOKEN")
+        raise RuntimeError("Must specify token in environment variable GITHUB_TOKEN")
 
-    query = (
-        QueryBuilder()
+    client = Client("https://api.github.com/graphql", token=token)
+
+    data = (
+        client.new_query()
         .var("size", "Int")
         .select(
             Field("viewer").select(
                 "login", "name", Field("avatarUrl", size=Var("size"))
             ),
-            Field("repository", owner="asmello").arg("name", "grafq").select("url"),
+            Field("repository", name="grafq", owner="asmello").select("url"),
         )
-        .build()
+        .build_and_execute(variables={"size": 200})
     )
-    client = Client("https://api.github.com/graphql", token=token)
-    data = client.post(query, variables={"size": 200})
     print(data)
 
 
