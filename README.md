@@ -15,14 +15,14 @@ data = client.get(simple)
 
 complex = (
     QueryBuilder()
-        .var("size", "Int")
-        .select(
+    .var("size", "Int")
+    .select(
         Field("viewer").select(
             "login", "name", Field("avatarUrl", size=Var("size"))
         ),
         Field("repository", owner="asmello").arg("name", "grafq").select("url"),
     )
-        .build()
+    .build()
 )
 data = client.post(complex, variables={"size": 200})
 ```
