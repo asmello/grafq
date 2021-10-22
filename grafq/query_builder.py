@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Union
 
 from grafq.client import Client
-from grafq.field import Field, coerce_field
+from grafq.field import Field, _coerce_field
 from grafq.language import (
     VariableDefinition,
     VariableType,
@@ -20,7 +20,7 @@ class QueryBuilder:
         self._client = client
         self._name: Optional[str] = None
         self._variable_definitions: list[VariableDefinition] = []
-        self._selection_set: set[Selection] = set()
+        self._fields: set[Field] = set()
 
     def name(self, name: str) -> QueryBuilder:
         self._name = name
@@ -40,13 +40,15 @@ class QueryBuilder:
         return self
 
     def select(self, *fields: Union[str, Field]) -> QueryBuilder:
-        fields = (coerce_field(field) for field in fields)
-        self._selection_set = set(Field.combine([*self._selection_set, *fields]))
+        fields = (_coerce_field(field) for field in fields)
+        self._fields = set(Field.combine([*self._fields, *fields]))
         return self
 
     def build(self, shorthand: bool = True) -> Query:
+        selection_set = [Selection(field.freeze()) for field in self._fields]
+        selection_set.sort()
         return Query(
-            sorted(Selection(field.freeze()) for field in self._selection_set),
+            selection_set,
             self._name,
             self._variable_definitions,
             shorthand,

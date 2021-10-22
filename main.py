@@ -1,9 +1,7 @@
 import os
 
 from grafq.client import Client
-from grafq.field import Field
-from grafq.language import VarRef
-from grafq.query_builder import QueryBuilder
+from grafq import Field, Var, QueryBuilder
 
 
 def main():
@@ -16,7 +14,7 @@ def main():
         .var("size", "Int")
         .select(
             Field("viewer").select(
-                "login", "name", Field("avatarUrl", size=VarRef("size"))
+                "login", "name", Field("avatarUrl", size=Var("size"))
             ),
             Field("repository", owner="asmello").arg("name", "grafq").select("url"),
         )

@@ -12,7 +12,7 @@ from grafq.language import (
 )
 
 
-def coerce_field(field: Union[str, Field]) -> Field:
+def _coerce_field(field: Union[str, Field]) -> Field:
     if isinstance(field, str):
         parts = field.split(".")
         original_field = Field(parts.pop(0))
@@ -33,7 +33,7 @@ class Field:
         self._name = name
         self._arguments = kwargs
         self._alias: Optional[str] = None
-        self._selection_set: set[Field] = set()
+        self._fields: set[Field] = set()
 
     def arg(self, name: str, value: ValueInnerType) -> Field:
         self._arguments[name] = value
@@ -46,15 +46,15 @@ class Field:
             if field._name in found:
                 original = found[field._name]
                 original._arguments.update(field._arguments)
-                original._selection_set.update(field._selection_set)
+                original._fields.update(field._fields)
                 original._alias = field._alias or original._alias
             else:
                 found[field._name] = field
         return found.values()
 
     def select(self, *fields: Union[str, Field]) -> Field:
-        fields = (coerce_field(field) for field in fields)
-        self._selection_set = set(Field.combine([*self._selection_set, *fields]))
+        fields = (_coerce_field(field) for field in fields)
+        self._fields = set(Field.combine([*self._fields, *fields]))
         return self
 
     def alias(self, alias: str) -> Field:
@@ -66,7 +66,7 @@ class Field:
             Argument(name, Value(value)) for name, value in self._arguments.items()
         ]
         arguments.sort()
-        selection_set = [Selection(field.freeze()) for field in self._selection_set]
+        selection_set = [Selection(field.freeze()) for field in self._fields]
         selection_set.sort()
         return FrozenField(
             self._name,

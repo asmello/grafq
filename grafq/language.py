@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Optional, Union
 
 
-def indent(text: str):
+def _indent(text: str):
     return "\n".join("  " + line for line in text.splitlines())
 
 
@@ -125,7 +125,7 @@ class Field:
             s += "(" + ", ".join(argument.pretty() for argument in self.arguments) + ")"
         if self.selection_set:
             selections = "\n".join(
-                indent(selection.pretty()) for selection in self.selection_set
+                _indent(selection.pretty()) for selection in self.selection_set
             )
             s += " {\n" + selections + "\n}"
         return s
@@ -184,7 +184,7 @@ class Query:
                 s
                 + "{\n"
                 + "\n".join(
-                    indent(selection.pretty()) for selection in self.selection_set
+                    _indent(selection.pretty()) for selection in self.selection_set
                 )
                 + "\n}"
             )
