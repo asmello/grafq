@@ -5,7 +5,7 @@ from typing import Optional, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from grafq.schema import Schema
     from grafq.client import Client
-from grafq.field import Field
+from grafq.field_blueprint import FieldBlueprint, coerce_to_blueprint
 from grafq.language import (
     VariableDefinition,
     VariableType,
@@ -13,20 +13,20 @@ from grafq.language import (
     Selection,
     Query,
     NamedType,
-    ValueInnerType,
+    ValueRawType,
 )
 
 
-class QueryBuilder:
+class QueryBlueprint:
     def __init__(
         self, client: Optional[Client] = None, schema: Optional[Schema] = None
     ):
         self._client = client
         self._name: Optional[str] = None
         self._variable_definitions: list[VariableDefinition] = []
-        self._fields: set[Field] = set()
+        self._fields: list[FieldBlueprint] = list()
 
-    def name(self, name: str) -> QueryBuilder:
+    def name(self, name: str) -> QueryBlueprint:
         self._name = name
         return self
 
@@ -34,8 +34,8 @@ class QueryBuilder:
         self,
         name: str,
         var_type: Union[VariableType, str],
-        default: Optional[ValueInnerType] = None,
-    ) -> QueryBuilder:
+        default: Optional[ValueRawType] = None,
+    ) -> QueryBlueprint:
         if isinstance(var_type, str):
             var_type = NamedType(var_type)
         if default is not None:
@@ -43,26 +43,27 @@ class QueryBuilder:
         self._variable_definitions.append(VariableDefinition(name, var_type, default))
         return self
 
-    def select(self, *fields: Union[str, Field]) -> QueryBuilder:
-        fields = (Field.coerce_field(field) for field in fields)
-        self._fields = set(Field.combine([*self._fields, *fields]))
+    def select(self, *fields: Union[str, FieldBlueprint]) -> QueryBlueprint:
+        self._fields = list(
+            FieldBlueprint.combine(
+                self._fields, (coerce_to_blueprint(field) for field in fields)
+            )
+        )
         return self
 
     def build(self, shorthand: bool = True) -> Query:
-        selection_set = [Selection(field.freeze()) for field in self._fields]
-        selection_set.sort()
         return Query(
-            selection_set,
-            self._name,
-            self._variable_definitions,
-            shorthand,
+            selection_set=[Selection(field.build()) for field in self._fields],
+            name=self._name,
+            variable_definitions=self._variable_definitions,
+            shorthand=shorthand,
             client=self._client,
         )
 
-    def build_and_execute(
+    def build_and_run(
         self,
         client: Optional[Client] = None,
-        variables: Optional[dict[str, ValueInnerType]] = None,
+        variables: Optional[dict[str, ValueRawType]] = None,
     ) -> dict:
         client = client or self._client
         if not client:

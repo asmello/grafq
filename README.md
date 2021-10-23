@@ -5,24 +5,24 @@
 ## Example
 
 ```python
-from src.grafq import Field, Var, QueryBuilder
+from src.grafq import FieldRef, Var, QueryBlueprint
 from src.grafq.client import Client
 
 client = Client("https://api.github.com/graphql", token=TOKEN)
 
-simple = QueryBuilder().select("viewer.login", "viewer.name").build()
+simple = QueryBlueprint().select("viewer.login", "viewer.name").build()
 data = client.get(simple)
 
 complex = (
-    QueryBuilder()
-    .var("size", "Int")
-    .select(
-        Field("viewer").select(
-            "login", "name", Field("avatarUrl", size=Var("size"))
+    QueryBlueprint()
+        .var("size", "Int")
+        .select(
+        FieldRef("viewer").select(
+            "login", "name", FieldRef("avatarUrl", size=Var("size"))
         ),
-        Field("repository", owner="asmello").arg("name", "grafq").select("url"),
+        FieldRef("repository", owner="asmello").arg("name", "grafq").select("url"),
     )
-    .build()
+        .build()
 )
 data = client.post(complex, variables={"size": 200})
 ```

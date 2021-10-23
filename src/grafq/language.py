@@ -21,7 +21,7 @@ class Null:
 
 @dataclass(frozen=True, order=True)
 class Value:
-    inner: ValueInnerType
+    inner: ValueRawType
 
     def __str__(self):
         return _str(self.inner)
@@ -35,12 +35,12 @@ class VarRef:
         return f"${self.name}"
 
 
-ValueInnerType = Union[
+ValueRawType = Union[
     str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef
 ]
 
 
-def _str(value: ValueInnerType) -> str:
+def _str(value: ValueRawType) -> str:
     if isinstance(value, str):
         return f'"{value}"'
     if isinstance(value, bool):
@@ -168,7 +168,7 @@ class Query:
 
     def execute(
         self,
-        variables: Optional[dict[str, ValueInnerType]] = None,
+        variables: Optional[dict[str, ValueRawType]] = None,
         client: Optional[Client] = None,
     ) -> dict:
         client = client or self.client

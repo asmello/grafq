@@ -20,7 +20,7 @@ def main():
             ),
             Field("repository", name="grafq", owner="asmello").select("url"),
         )
-        .build_and_execute(variables={"size": 200})
+        .build_and_run(variables={"size": 200})
     )
     print(data)
 
