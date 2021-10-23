@@ -16,9 +16,9 @@ class TestField(TestCase):
     def test_multiple_arguments(self):
         field = Field("test", id=42, foo="bar").build()
         self.assertEqual(
-            [Argument("foo", Value("bar")), Argument("id", Value(42))], field.arguments
+            [Argument("id", Value(42)), Argument("foo", Value("bar"))], field.arguments
         )
-        self.assertEqual('test(foo:"bar",id:42)', str(field))
+        self.assertEqual('test(id:42,foo:"bar")', str(field))
 
     def test_select(self):
         field = Field("test").select("inner").build()

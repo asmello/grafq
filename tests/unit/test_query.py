@@ -100,7 +100,7 @@ class TestQueryBuilder(TestCase):
             .build()
         )
         self.assertEqual(
-            'query($size:Int){viewer{login,name,avatarUrl(size:$size)},repository(name:"grafq",owner:"asmello"){url}}',
+            'query($size:Int){viewer{login,name,avatarUrl(size:$size)},repository(owner:"asmello",name:"grafq"){url}}',
             str(query),
         )
 

@@ -166,7 +166,7 @@ class Query:
     shorthand: bool = True
     client: Optional[Client] = None
 
-    def execute(
+    def run(
         self,
         variables: Optional[dict[str, ValueRawType]] = None,
         client: Optional[Client] = None,

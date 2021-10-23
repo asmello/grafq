@@ -94,7 +94,7 @@ class TypedFieldBlueprint(FieldBlueprint):
         return new
 
     def __getitem__(self, name: str) -> FieldBlueprint:
-        if isinstance(name, str):
+        if not isinstance(name, str):
             raise TypeError("key must be a string")
         if name in self._children:
             return self._children[name]

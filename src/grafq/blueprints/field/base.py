@@ -40,6 +40,10 @@ class FieldBlueprint(Blueprint):
         self._alias: Optional[str] = None
         self._parent: Optional[FieldBlueprint] = parent
 
+    def arg(self, name: str, value: ValueRawType) -> FieldBlueprint:
+        self._arguments[name] = value
+        return self
+
     @staticmethod
     def combine(original: dict[str, FieldBlueprint], new: Iterable[FieldBlueprint]):
         for blueprint in new:
@@ -63,14 +67,11 @@ class FieldBlueprint(Blueprint):
         return self
 
     def build(self) -> Field:
-        arguments = [
-            Argument(name, Value(value)) for name, value in self._arguments.items()
-        ]
-        arguments.sort()
         return Field(
             self._name,
             self._alias,
-            arguments or None,
+            [Argument(name, Value(value)) for name, value in self._arguments.items()]
+            or None,
             [Selection(child.build()) for child in self._children.values()] or None,
         )
 
