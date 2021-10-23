@@ -20,7 +20,6 @@ class Client:
     def get(
         self, query: Query, variables: Optional[dict[str, ValueRawType]] = None
     ) -> dict:
-        print(query)
         payload = {"query": str(query)}
         if variables:
             payload["variables"] = variables
@@ -36,7 +35,6 @@ class Client:
     def post(
         self, query: Query, variables: Optional[dict[str, ValueRawType]] = None
     ) -> dict:
-        print(query)
         payload = {"query": str(query)}
         if variables:
             payload["variables"] = variables

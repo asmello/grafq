@@ -34,44 +34,30 @@ class FieldBlueprint:
     def __init__(self, field_name: str, **kwargs: ValueRawType):
         self._name = field_name
         self._arguments = kwargs
+        self._children: dict[str, FieldBlueprint] = {}
         self._alias: Optional[str] = None
-        self._children: list[FieldBlueprint] = []
-
-    @property
-    def name(self):
-        return self._name
 
     def arg(self, name: str, value: ValueRawType) -> FieldBlueprint:
         self._arguments[name] = value
         return self
 
     @staticmethod
-    def _combine(blueprints: Iterable[FieldBlueprint]) -> Iterable[FieldBlueprint]:
-        found: dict[str, FieldBlueprint] = {}
-        for blueprint in blueprints:
-            if blueprint._name in found:
-                original = found[blueprint._name]
-                original._arguments.update(blueprint._arguments)
-                # Python 3.6+ ensures dict preserves insertion order, so we can use this trick to dedup stably
-                original._children = list(
-                    dict.fromkeys((*original._children, *blueprint._children))
+    def combine(original: dict[str, FieldBlueprint], new: Iterable[FieldBlueprint]):
+        for blueprint in new:
+            if original_blueprint := original.get(blueprint._name):
+                original_blueprint._arguments |= blueprint._arguments
+                FieldBlueprint.combine(
+                    original_blueprint._children, blueprint._children.values()
                 )
-                original._alias = blueprint._alias or original._alias
+                original_blueprint._alias = (
+                    blueprint._alias or original_blueprint._alias
+                )
             else:
-                found[blueprint._name] = blueprint
-        return found.values()
-
-    @staticmethod
-    def combine(
-        original: Iterable[FieldBlueprint], new: Iterable[FieldBlueprint]
-    ) -> Iterable[FieldBlueprint]:
-        return FieldBlueprint._combine((*original, *new))
+                original[blueprint._name] = blueprint
 
     def select(self, *specs: Union[str, FieldBlueprint]) -> FieldBlueprint:
-        self._children = list(
-            FieldBlueprint.combine(
-                self._children, (coerce_to_blueprint(spec) for spec in specs)
-            )
+        FieldBlueprint.combine(
+            self._children, (coerce_to_blueprint(spec) for spec in specs)
         )
         return self
 
@@ -88,11 +74,11 @@ class FieldBlueprint:
             self._name,
             self._alias,
             arguments or None,
-            [Selection(child.build()) for child in self._children] or None,
+            [Selection(child.build()) for child in self._children.values()] or None,
         )
 
     def clone(self) -> FieldBlueprint:
         new = FieldBlueprint(self._name, **self._arguments)
         new._alias = self._alias
-        new._children = [child.clone() for child in self._children]
+        new._children = [child.clone() for child in self._children.values()]
         return new

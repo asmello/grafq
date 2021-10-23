@@ -35,9 +35,15 @@ class TestSchema(TestCase):
         self.assertEqual("viewer", str(self.schema.viewer.build()))
 
     def test_get_nested_field(self):
-        field_ref = self.schema.viewer.login
-        self.assertEqual("login", str(field_ref.build()))
-        self.assertEqual("viewer{login}", str(field_ref.root().build()))
+        blueprint = self.schema.viewer.login
+        self.assertEqual("login", str(blueprint.build()))
+        self.assertEqual("viewer{login}", str(blueprint.root().build()))
+
+    def test_arguments(self):
+        query = self.schema.repository(name="grafq", owner="asmello").name
+        self.assertEqual(
+            'repository(name:"grafq",owner:"asmello"){name}', str(query.root().build())
+        )
 
     def test_get_invalid_field(self):
         with self.assertRaises(AttributeError):

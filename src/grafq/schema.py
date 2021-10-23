@@ -95,7 +95,7 @@ class FieldMeta:
                 InputValue(
                     name=value["name"],
                     description=value["description"],
-                    type=value["type"],
+                    type=SchemaType.from_dict(value["type"]),
                     default_value=value["defaultValue"],
                 )
                 for value in d["args"]

@@ -24,7 +24,7 @@ class QueryBlueprint:
         self._client = client
         self._name: Optional[str] = None
         self._variable_definitions: list[VariableDefinition] = []
-        self._fields: list[FieldBlueprint] = list()
+        self._fields: dict[str, FieldBlueprint] = {}
 
     def name(self, name: str) -> QueryBlueprint:
         self._name = name
@@ -43,17 +43,15 @@ class QueryBlueprint:
         self._variable_definitions.append(VariableDefinition(name, var_type, default))
         return self
 
-    def select(self, *fields: Union[str, FieldBlueprint]) -> QueryBlueprint:
-        self._fields = list(
-            FieldBlueprint.combine(
-                self._fields, (coerce_to_blueprint(field) for field in fields)
-            )
+    def select(self, *specs: Union[str, FieldBlueprint]) -> QueryBlueprint:
+        FieldBlueprint.combine(
+            self._fields, (coerce_to_blueprint(spec) for spec in specs)
         )
         return self
 
     def build(self, shorthand: bool = True) -> Query:
         return Query(
-            selection_set=[Selection(field.build()) for field in self._fields],
+            selection_set=[Selection(field.build()) for field in self._fields.values()],
             name=self._name,
             variable_definitions=self._variable_definitions,
             shorthand=shorthand,
