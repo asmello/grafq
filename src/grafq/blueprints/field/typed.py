@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 
-from grafq.language import ValueRawType, Null, Field, Argument, Value, Selection
+from grafq.language import ValueRawType, Null
+from .base import FieldBlueprint
 
 if TYPE_CHECKING:
     from grafq.schema import Schema, FieldMeta, SchemaType, ID
@@ -47,20 +48,18 @@ def _validate_arg_value(value_type: SchemaType, value: ValueRawType) -> bool:
     return False
 
 
-class TypedFieldBlueprint:
+class TypedFieldBlueprint(FieldBlueprint):
     def __init__(
         self,
         schema: Schema,
         meta: FieldMeta,
         parent: Optional[TypedFieldBlueprint] = None,
     ):
+        super().__init__(meta.name)
         self._schema = schema
         self._meta = meta
         self._core_type = self._resolve_type(meta.type)
         self._parent = parent
-        self._arguments: dict[str, ValueRawType] = {}
-        self._children: dict[str, TypedFieldBlueprint] = {}
-        self._alias: Optional[str] = None
 
     @staticmethod
     def _resolve_type(typespec: SchemaType) -> str:
@@ -85,7 +84,7 @@ class TypedFieldBlueprint:
                 )
         return self
 
-    def __getattr__(self, name: str) -> TypedFieldBlueprint:
+    def __getattr__(self, name: str) -> FieldBlueprint:
         if name in self._children:
             return self._children[name]
         fields = self._schema.get_type_fields(self._core_type)
@@ -95,7 +94,7 @@ class TypedFieldBlueprint:
         self._children[name] = new
         return new
 
-    def __getitem__(self, name: str) -> TypedFieldBlueprint:
+    def __getitem__(self, name: str) -> FieldBlueprint:
         if isinstance(name, str):
             raise TypeError("key must be a string")
         if name in self._children:
@@ -106,18 +105,6 @@ class TypedFieldBlueprint:
         new = TypedFieldBlueprint(self._schema, fields[name], parent=self)
         self._children[name] = new
         return new
-
-    def build(self) -> Field:
-        arguments = [
-            Argument(name, Value(value)) for name, value in self._arguments.items()
-        ]
-        arguments.sort()
-        return Field(
-            self._meta.name,
-            self._alias,
-            arguments or None,
-            [Selection(child.build()) for child in self._children.values()] or None,
-        )
 
     def root(self) -> TypedFieldBlueprint:
         node = self

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Optional, Union, TYPE_CHECKING
 
+from grafq.blueprints.base import Blueprint
+from grafq.blueprints.field.base import coerce, FieldBlueprint
+
 if TYPE_CHECKING:
     from grafq.schema import Schema
     from grafq.client import Client
-from grafq.field_blueprint import FieldBlueprint, coerce_to_blueprint
 from grafq.language import (
     VariableDefinition,
     VariableType,
@@ -17,7 +19,7 @@ from grafq.language import (
 )
 
 
-class QueryBlueprint:
+class QueryBlueprint(Blueprint):
     def __init__(
         self, client: Optional[Client] = None, schema: Optional[Schema] = None
     ):
@@ -44,9 +46,7 @@ class QueryBlueprint:
         return self
 
     def select(self, *specs: Union[str, FieldBlueprint]) -> QueryBlueprint:
-        FieldBlueprint.combine(
-            self._fields, (coerce_to_blueprint(spec) for spec in specs)
-        )
+        FieldBlueprint.combine(self._fields, (coerce(spec) for spec in specs))
         return self
 
     def build(self, shorthand: bool = True) -> Query:

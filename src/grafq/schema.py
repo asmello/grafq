@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union
 
-from grafq.field_blueprint import FieldBlueprint
-from grafq.query_blueprint import QueryBlueprint
-from grafq.typed_field_blueprint import TypedFieldBlueprint
+from grafq.blueprints import FieldBlueprint, QueryBlueprint, TypedFieldBlueprint
 
 if TYPE_CHECKING:
     from grafq.client import Client

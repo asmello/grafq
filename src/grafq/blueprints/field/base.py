@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 from collections.abc import Iterable
 from typing import Optional, Union
 
+from grafq.blueprints.base import Blueprint
 from grafq.language import (
     Argument,
     Value,
@@ -12,7 +14,7 @@ from grafq.language import (
 )
 
 
-def coerce_to_blueprint(field: Union[str, FieldBlueprint]) -> FieldBlueprint:
+def coerce(field: Union[str, FieldBlueprint]) -> FieldBlueprint:
     if isinstance(field, str):
         if "." in field:
             parts = field.split(".")
@@ -30,16 +32,12 @@ def coerce_to_blueprint(field: Union[str, FieldBlueprint]) -> FieldBlueprint:
         raise TypeError(f"Illegal type given to select: {type(field)}")
 
 
-class FieldBlueprint:
-    def __init__(self, field_name: str, **kwargs: ValueRawType):
-        self._name = field_name
-        self._arguments = kwargs
+class FieldBlueprint(Blueprint):
+    def __init__(self, name: str):
+        self._name = name
+        self._arguments: dict[str, ValueRawType] = {}
         self._children: dict[str, FieldBlueprint] = {}
         self._alias: Optional[str] = None
-
-    def arg(self, name: str, value: ValueRawType) -> FieldBlueprint:
-        self._arguments[name] = value
-        return self
 
     @staticmethod
     def combine(original: dict[str, FieldBlueprint], new: Iterable[FieldBlueprint]):
@@ -56,9 +54,7 @@ class FieldBlueprint:
                 original[blueprint._name] = blueprint
 
     def select(self, *specs: Union[str, FieldBlueprint]) -> FieldBlueprint:
-        FieldBlueprint.combine(
-            self._children, (coerce_to_blueprint(spec) for spec in specs)
-        )
+        FieldBlueprint.combine(self._children, (coerce(spec) for spec in specs))
         return self
 
     def alias(self, alias: str) -> FieldBlueprint:
@@ -78,7 +74,4 @@ class FieldBlueprint:
         )
 
     def clone(self) -> FieldBlueprint:
-        new = FieldBlueprint(self._name, **self._arguments)
-        new._alias = self._alias
-        new._children = [child.clone() for child in self._children.values()]
-        return new
+        return copy.deepcopy(self)

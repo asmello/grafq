@@ -3,9 +3,9 @@ from typing import Optional
 
 import requests
 
+from grafq.blueprints.query import QueryBlueprint
 from grafq.errors import OperationErrors, RemoteError
 from grafq.language import Query, ValueRawType
-from grafq.query_blueprint import QueryBlueprint
 from grafq.schema import Schema
 
 
