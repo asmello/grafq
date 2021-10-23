@@ -27,17 +27,18 @@ def coerce(field: Union[str, FieldBlueprint]) -> FieldBlueprint:
         else:
             return FieldBlueprint(field)
     elif isinstance(field, FieldBlueprint):
-        return field
+        return field.root()
     else:
         raise TypeError(f"Illegal type given to select: {type(field)}")
 
 
 class FieldBlueprint(Blueprint):
-    def __init__(self, name: str):
+    def __init__(self, name: str, parent: Optional[FieldBlueprint] = None):
         self._name = name
         self._arguments: dict[str, ValueRawType] = {}
         self._children: dict[str, FieldBlueprint] = {}
         self._alias: Optional[str] = None
+        self._parent: Optional[FieldBlueprint] = parent
 
     @staticmethod
     def combine(original: dict[str, FieldBlueprint], new: Iterable[FieldBlueprint]):
@@ -75,3 +76,9 @@ class FieldBlueprint(Blueprint):
 
     def clone(self) -> FieldBlueprint:
         return copy.deepcopy(self)
+
+    def root(self) -> FieldBlueprint:
+        node = self
+        while node._parent:
+            node = node._parent
+        return node

@@ -55,11 +55,10 @@ class TypedFieldBlueprint(FieldBlueprint):
         meta: FieldMeta,
         parent: Optional[TypedFieldBlueprint] = None,
     ):
-        super().__init__(meta.name)
+        super().__init__(meta.name, parent=parent)
         self._schema = schema
         self._meta = meta
         self._core_type = self._resolve_type(meta.type)
-        self._parent = parent
 
     @staticmethod
     def _resolve_type(typespec: SchemaType) -> str:
@@ -105,9 +104,3 @@ class TypedFieldBlueprint(FieldBlueprint):
         new = TypedFieldBlueprint(self._schema, fields[name], parent=self)
         self._children[name] = new
         return new
-
-    def root(self) -> TypedFieldBlueprint:
-        node = self
-        while node._parent:
-            node = node._parent
-        return node
