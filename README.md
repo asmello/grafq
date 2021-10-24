@@ -5,8 +5,8 @@
 ## Example
 
 ```python3
-from src.grafq import Field, Var, Query
-from src.grafq.client import Client
+from grafq import Field, Var, Query
+from grafq.client import Client
 
 client = Client("https://api.github.com/graphql", token=TOKEN)
 
