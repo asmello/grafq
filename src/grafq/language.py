@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union, TYPE_CHECKING
@@ -14,14 +14,35 @@ def _indent(text: str):
 
 
 # Need to distinguish from None for optional fields
-class Null:
+class NullType:
     def __str__(self):
         return "null"
 
 
+Null = NullType()
+
+
+@dataclass(frozen=True, order=True)
+class ID:
+    value: str
+
+    def __str__(self):
+        return f'"{self.value}"'
+
+
+@dataclass(frozen=True, order=True)
+class ScalarExtension:
+    """To be used by library users for type checking scalar extensions."""
+
+    value: Union[str, int, float, bool, ID]
+
+    def __str__(self):
+        return _str(self.value)
+
+
 @dataclass(frozen=True, order=True)
 class Value:
-    inner: ValueInnerType
+    inner: ValueRawType
 
     def __str__(self):
         return _str(self.inner)
@@ -35,12 +56,12 @@ class VarRef:
         return f"${self.name}"
 
 
-ValueInnerType = Union[
-    str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef
+ValueRawType = Union[
+    str, int, float, bool, NullType, Enum, list[Value], dict[str, Value], VarRef
 ]
 
 
-def _str(value: ValueInnerType) -> str:
+def _str(value: ValueRawType) -> str:
     if isinstance(value, str):
         return f'"{value}"'
     if isinstance(value, bool):
@@ -54,12 +75,17 @@ def _str(value: ValueInnerType) -> str:
 
 @dataclass(frozen=True, order=True)
 class VariableType(ABC):
-    pass
+    @abstractmethod
+    def core_type_name(self) -> str:
+        pass
 
 
 @dataclass(frozen=True, order=True)
 class NamedType(VariableType):
     name: str
+
+    def core_type_name(self) -> str:
+        return self.name
 
     def __str__(self) -> str:
         return self.name
@@ -69,6 +95,9 @@ class NamedType(VariableType):
 class ListType(VariableType):
     subtype: VariableType
 
+    def core_type_name(self) -> str:
+        return self.subtype.core_type_name()
+
     def __str__(self) -> str:
         return f"[{self.subtype}]"
 
@@ -76,6 +105,9 @@ class ListType(VariableType):
 @dataclass(frozen=True, order=True)
 class NonNullType(VariableType):
     subtype: Union[NamedType, ListType]
+
+    def core_type_name(self) -> str:
+        return self.subtype.core_type_name()
 
     def __str__(self) -> str:
         return f"{self.subtype}!"
@@ -166,9 +198,9 @@ class Query:
     shorthand: bool = True
     client: Optional[Client] = None
 
-    def execute(
+    def run(
         self,
-        variables: Optional[dict[str, ValueInnerType]] = None,
+        variables: Optional[dict[str, ValueRawType]] = None,
         client: Optional[Client] = None,
     ) -> dict:
         client = client or self.client

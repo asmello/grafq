@@ -1,6 +1,6 @@
 import os
 
-from grafq import Field, Var
+from grafq import Var
 from grafq.client import Client
 
 
@@ -10,15 +10,17 @@ def main():
         raise RuntimeError("Must specify token in environment variable GITHUB_TOKEN")
 
     client = Client("https://api.github.com/graphql", token=token)
+    schema = client.schema(strict=True)
+    viewer = schema.viewer
 
     data = (
         client.new_query()
         .var("size", "Int")
         .select(
-            Field("viewer").select(
-                "login", "name", Field("avatarUrl", size=Var("size"))
-            ),
-            Field("repository", name="grafq", owner="asmello").select("url"),
+            viewer.login,
+            viewer.name,
+            viewer.avatarUrl(size=Var("size")),
+            schema.repository(name="grafq", owner="asmello").url,
         )
         .build_and_run(variables={"size": 200})
     )
