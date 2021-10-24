@@ -47,7 +47,7 @@ All of these (and other reasons) have led to the development of this library, wh
 
 Type safety is opt-in. If you use the Field API, you can create typeless queries that work just as well as typed ones. Then you delegate error-catching to the server, which may or may not provide useful context. 
 
-If you choose to use the sugar-sweet Schema API, however, every field and variable is validated as early as possible, client-side, as you build the query. Validation will still occur at runtime, but before the query is fully built and executes. Bear in mind that currently this has a noticeable overhead, as introspection queries are relatively expensive (but in the future better caching will minimise this).
+If you choose to use the sugar-sweet TypedField API (accesible from a Schema object), however, every field and variable is validated as early as possible, client-side, as you build the query. Validation will still occur at runtime, but before the query is fully built and executes. Bear in mind that currently this has a noticeable overhead, as introspection queries are relatively expensive (but in the future better caching will minimise this).
 
 Further, there are plans to support generating schema classes staticallly, which can then be used for offline type-checking using Python's native type hinting system. This has the downside that the generated classes need to be kept in sync with the remote API, but it has the upside that IDE features (like type checking and auto-complete) can be leveraged to their full potential at virtually no runtime cost.
 
