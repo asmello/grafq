@@ -294,7 +294,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         spec = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     "kind", "name", OF_TYPE_FRAGMENT
@@ -309,7 +309,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         result = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(FieldBlueprint("__type", name=name).select("description"))
             .build_and_run()
         )
@@ -319,7 +319,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         fields = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     FieldBlueprint("fields", includeDeprecated=True).select(
@@ -350,7 +350,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         result = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     FieldBlueprint("interfaces").select(
@@ -371,7 +371,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         result = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     FieldBlueprint("possibleTypes").select(
@@ -395,7 +395,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         result = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     FieldBlueprint("enumValues", includeDeprecated=True).select(
@@ -416,7 +416,7 @@ class Schema:
         if not self.is_valid_type(name):
             return None
         result = (
-            self._client.new_query()
+            self._client.new_query(with_schema=False)
             .select(
                 FieldBlueprint("__type", name=name).select(
                     FieldBlueprint("inputFields").select(
