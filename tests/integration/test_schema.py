@@ -1,24 +1,25 @@
 import os
-from unittest import TestCase, main
+from unittest import TestCase, main, skipIf
 
 from grafq import Field
 from grafq.client import Client
 
-REPO_NAME = "grafq"
-REPO_OWNER = "asmello"
 
-
+@skipIf(
+    os.environ.get("GITHUB_TOKEN") is None
+    or os.environ.get("GITHUB_REPOSITORY") is None,
+    "Must set GITHUB_TOKEN and GITHUB_REPOSITORY environment variables to be able to run these tests.",
+)
 class TestSchema(TestCase):
     client = None
 
     @classmethod
     def setUpClass(cls) -> None:
         token = os.environ.get("GITHUB_TOKEN")
-        if not token:
-            raise RuntimeError(
-                "Missing Github API token (should be set as GITHUB_TOKEN environment variable)"
-            )
         url = os.environ.get("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql")
+        repo_parts = os.environ.get("GITHUB_REPOSITORY").split("/")
+        cls.repo_owner = repo_parts[0]
+        cls.repo_name = repo_parts[1]
         cls.client = Client(url, token)
         cls.schema = cls.client.schema
 
@@ -101,49 +102,69 @@ class TestSchema(TestCase):
     def test_simple_query(self):
         result = (
             self.client.new_query()
-            .select(self.schema.repository(name=REPO_NAME, owner=REPO_OWNER).name)
+            .select(
+                self.schema.repository(name=self.repo_name, owner=self.repo_owner).name
+            )
             .build_and_run()
         )
-        self.assertDictEqual({"repository": {"name": REPO_NAME}}, result)
+        self.assertDictEqual({"repository": {"name": self.repo_name}}, result)
 
     def test_reuse_query(self):
-        repository = self.schema.repository(name=REPO_NAME, owner=REPO_OWNER)
+        repository = self.schema.repository(name=self.repo_name, owner=self.repo_owner)
         result = (
             self.client.new_query()
             .select(repository.name, repository.owner.login)
             .build_and_run()
         )
         self.assertDictEqual(
-            {"repository": {"name": REPO_NAME, "owner": {"login": REPO_OWNER}}}, result
+            {
+                "repository": {
+                    "name": self.repo_name,
+                    "owner": {"login": self.repo_owner},
+                }
+            },
+            result,
         )
 
     def test_mixed_query(self):
         result = (
             self.client.new_query()
             .select(
-                self.schema.repository(name=REPO_NAME, owner=REPO_OWNER).name,
-                Field("repository", name=REPO_NAME, owner=REPO_OWNER).select(
+                self.schema.repository(name=self.repo_name, owner=self.repo_owner).name,
+                Field("repository", name=self.repo_name, owner=self.repo_owner).select(
                     Field("owner").select("login")
                 ),
             )
             .build_and_run()
         )
         self.assertDictEqual(
-            {"repository": {"name": REPO_NAME, "owner": {"login": REPO_OWNER}}}, result
+            {
+                "repository": {
+                    "name": self.repo_name,
+                    "owner": {"login": self.repo_owner},
+                }
+            },
+            result,
         )
 
     def test_select_query(self):
         result = (
             self.client.new_query()
             .select(
-                self.schema.repository(name=REPO_NAME, owner=REPO_OWNER).select(
-                    "name", Field("owner").select("login")
-                )
+                self.schema.repository(
+                    name=self.repo_name, owner=self.repo_owner
+                ).select("name", Field("owner").select("login"))
             )
             .build_and_run()
         )
         self.assertDictEqual(
-            {"repository": {"name": REPO_NAME, "owner": {"login": REPO_OWNER}}}, result
+            {
+                "repository": {
+                    "name": self.repo_name,
+                    "owner": {"login": self.repo_owner},
+                }
+            },
+            result,
         )
 
 
