@@ -22,12 +22,12 @@ jobs:
           python -m pip install --upgrade pip pipenv
           pipenv install
       - name: Run tests
-        run: pipenv run python -m unittest discover 2> tests_output.txt && echo $GITHUB_REPOSITORY
+        run: pipenv run python -m unittest discover 2> tests_output.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload ouput
         uses: actions/upload-artifact@v2
-#        if: failure()
+        if: failure()
         with:
           name: tests-output
           path: tests_output.txt
