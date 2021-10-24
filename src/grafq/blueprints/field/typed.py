@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 
-from grafq.language import ValueRawType, ID, NullType, ScalarExtension
+from grafq.language import ValueRawType, ID, NullType, ScalarExtension, VarRef
 from .base import FieldBlueprint
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ def _validate_arg_value(value_type: SchemaType, value: ValueRawType, strict) -> 
             if strict:
                 return isinstance(value, ID)
             else:
-                return isinstance(value, ID) or isinstance(value, str)
+                return isinstance(value, (ID, str))
         if strict:
             # the user must define a subtype by deriving from ScalarExtension
             return (
@@ -72,12 +72,19 @@ class TypedFieldBlueprint(FieldBlueprint):
         self._meta = meta
         self._strict = strict
         self._core_type = self._resolve_type(meta.type)
+        self._var_types: dict[VarRef, tuple[str, SchemaType]] = {}
 
     @staticmethod
     def _resolve_type(typespec: SchemaType) -> str:
         if typespec.name is None:
             return TypedFieldBlueprint._resolve_type(typespec.of_type)
         return typespec.name
+
+    def get_name(self):
+        return self._meta.name
+
+    def get_variable_types(self) -> dict[VarRef, tuple[str, SchemaType]]:
+        return self._var_types
 
     def __call__(self, **kwargs: ValueRawType) -> TypedFieldBlueprint:
         if not self._meta.args:
@@ -88,7 +95,11 @@ class TypedFieldBlueprint(FieldBlueprint):
         for name, value in kwargs.items():
             if name not in supported_args:
                 raise TypeError(f"Invalid argument {name} for field {self._meta.name}")
-            if _validate_arg_value(supported_args[name], value, self._strict):
+            if isinstance(value, VarRef):
+                # we delegate validation to QueryBlueprint class, which has context about variable types
+                self._var_types[value] = (name, supported_args[name])
+                self._arguments[name] = value
+            elif _validate_arg_value(supported_args[name], value, self._strict):
                 self._arguments[name] = value
             else:
                 raise TypeError(

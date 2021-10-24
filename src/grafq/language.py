@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Union, TYPE_CHECKING
@@ -75,12 +75,17 @@ def _str(value: ValueRawType) -> str:
 
 @dataclass(frozen=True, order=True)
 class VariableType(ABC):
-    pass
+    @abstractmethod
+    def core_type_name(self) -> str:
+        pass
 
 
 @dataclass(frozen=True, order=True)
 class NamedType(VariableType):
     name: str
+
+    def core_type_name(self) -> str:
+        return self.name
 
     def __str__(self) -> str:
         return self.name
@@ -90,6 +95,9 @@ class NamedType(VariableType):
 class ListType(VariableType):
     subtype: VariableType
 
+    def core_type_name(self) -> str:
+        return self.subtype.core_type_name()
+
     def __str__(self) -> str:
         return f"[{self.subtype}]"
 
@@ -97,6 +105,9 @@ class ListType(VariableType):
 @dataclass(frozen=True, order=True)
 class NonNullType(VariableType):
     subtype: Union[NamedType, ListType]
+
+    def core_type_name(self) -> str:
+        return self.subtype.core_type_name()
 
     def __str__(self) -> str:
         return f"{self.subtype}!"

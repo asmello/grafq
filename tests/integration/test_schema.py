@@ -3,7 +3,7 @@ from unittest import TestCase, main, skipIf
 
 from grafq import Field
 from grafq.client import Client
-from grafq.language import ID, Null, ScalarExtension
+from grafq.language import ID, Null, ScalarExtension, VarRef
 
 
 @skipIf(
@@ -233,6 +233,40 @@ class TestSchema(TestCase):
                 ).select("name", Field("owner").select("login"))
             )
             .build_and_run()
+        )
+        self.assertDictEqual(
+            {
+                "repository": {
+                    "name": self.repo_name,
+                    "owner": {"login": self.repo_owner},
+                }
+            },
+            result,
+        )
+
+    def test_variables_query(self):
+        query = (
+            self.client.new_query()
+            .var("dry_run_var", "Boolean")
+            .select(self.schema.rateLimit(dryRun=VarRef("dry_run_var")).used)
+            .build()
+        )
+        self.assertEqual(
+            "query($dry_run_var:Boolean){rateLimit(dryRun:$dry_run_var){used}}",
+            str(query),
+        )
+
+    def test_variables_query_run(self):
+        result = (
+            self.client.new_query()
+            .var("name", "String!")
+            .var("owner", "String!")
+            .select(
+                self.schema.repository(
+                    name=VarRef("name"), owner=VarRef("owner")
+                ).select("name", Field("owner").select("login"))
+            )
+            .build_and_run(variables={"name": self.repo_name, "owner": self.repo_owner})
         )
         self.assertDictEqual(
             {

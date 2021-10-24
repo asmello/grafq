@@ -8,7 +8,11 @@ from grafq.blueprints import FieldBlueprint, QueryBlueprint, TypedFieldBlueprint
 if TYPE_CHECKING:
     from grafq.client import Client
 
-from grafq.language import Query
+from grafq.language import (
+    Query,
+    ScalarExtension,
+    NullType,
+)
 
 
 @dataclass(frozen=True, order=True)
@@ -80,6 +84,10 @@ class SchemaType:
         self._possible_types = possible_types
         self._enum_values = enum_values
         self._input_fields = input_fields
+        core_type = self
+        while core_type._of_type:
+            core_type = core_type._of_type
+        self._core_type = core_type
 
     @classmethod
     def from_dict(cls, schema: Schema, d: dict) -> SchemaType:
@@ -153,6 +161,10 @@ class SchemaType:
     def of_type(self) -> Optional[SchemaType]:
         return self._of_type
 
+    @property
+    def core_type(self) -> SchemaType:
+        return self._core_type
+
 
 class FieldMeta:
     def __init__(
@@ -222,7 +234,10 @@ class FieldMeta:
 ROOT_QUERY: Query = (
     QueryBlueprint()
     .select(
-        FieldBlueprint("__schema").select(FieldBlueprint("queryType").select("name"))
+        FieldBlueprint("__schema").select(
+            FieldBlueprint("queryType").select("name"),
+            FieldBlueprint("types").select("name"),
+        )
     )
     .build()
 )
@@ -264,10 +279,20 @@ class Schema:
     def __init__(self, client: Client, strict: bool = False):
         self._client = client
         schema = client.get(ROOT_QUERY)["__schema"]
+        self._types: set[str] = {t["name"] for t in schema["types"]}
         self._root_fields = self.get_type_fields(schema["queryType"]["name"])
         self._strict = strict
 
-    def get_type(self, name: str) -> SchemaType:
+    @property
+    def is_strict(self) -> bool:
+        return self._strict
+
+    def is_valid_type(self, name: str) -> bool:
+        return name in self._types
+
+    def get_type(self, name: str) -> Optional[SchemaType]:
+        if not self.is_valid_type(name):
+            return None
         spec = (
             self._client.new_query()
             .select(
@@ -277,9 +302,12 @@ class Schema:
             )
             .build_and_run()
         )
-        return SchemaType.from_dict(self, spec["__type"])
+        type_meta = spec["__type"]
+        return SchemaType.from_dict(self, type_meta) if type_meta else None
 
     def get_type_description(self, name: str) -> Optional[str]:
+        if not self.is_valid_type(name):
+            return None
         result = (
             self._client.new_query()
             .select(FieldBlueprint("__type", name=name).select("description"))
@@ -287,7 +315,9 @@ class Schema:
         )
         return result["__type"]["description"]
 
-    def get_type_fields(self, name: str) -> dict[str, FieldMeta]:
+    def get_type_fields(self, name: str) -> Optional[dict[str, FieldMeta]]:
+        if not self.is_valid_type(name):
+            return None
         fields = (
             self._client.new_query()
             .select(
@@ -317,6 +347,8 @@ class Schema:
         )
 
     def get_type_interfaces(self, name: str) -> Optional[list[SchemaType]]:
+        if not self.is_valid_type(name):
+            return None
         result = (
             self._client.new_query()
             .select(
@@ -336,6 +368,8 @@ class Schema:
         )
 
     def get_type_possible_types(self, name: str) -> Optional[list[SchemaType]]:
+        if not self.is_valid_type(name):
+            return None
         result = (
             self._client.new_query()
             .select(
@@ -358,6 +392,8 @@ class Schema:
         )
 
     def get_type_enum_values(self, name: str) -> Optional[list[EnumValue]]:
+        if not self.is_valid_type(name):
+            return None
         result = (
             self._client.new_query()
             .select(
@@ -377,6 +413,8 @@ class Schema:
         )
 
     def get_type_input_fields(self, name: str) -> Optional[list[InputValue]]:
+        if not self.is_valid_type(name):
+            return None
         result = (
             self._client.new_query()
             .select(
@@ -394,6 +432,25 @@ class Schema:
             if input_fields
             else None
         )
+
+    def is_representable(self, value) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, (str, int, float, bool, NullType)):
+            return True
+        if isinstance(value, ScalarExtension) and self.is_valid_type(
+            type(value).__name__
+        ):
+            return True
+        if isinstance(value, list):
+            return not value or self.is_representable(value[0])
+        if isinstance(value, dict):
+            if not value:
+                return True
+            # noinspection PyTypeChecker
+            key, value = next(value.items())
+            return isinstance(key, str) and self.is_representable(value)
+        return False
 
     def __getattr__(self, name: str) -> TypedFieldBlueprint:
         if name not in self._root_fields:
