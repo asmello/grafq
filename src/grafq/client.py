@@ -15,7 +15,6 @@ class Client:
         self._session = requests.Session()
         if token:
             self._session.headers["Authorization"] = f"Bearer {token}"
-        self._schema: Optional[Schema] = None
 
     def get(
         self, query: Query, variables: Optional[dict[str, ValueRawType]] = None
@@ -50,8 +49,5 @@ class Client:
     def new_query(self) -> QueryBlueprint:
         return QueryBlueprint(client=self)
 
-    @property
-    def schema(self) -> Schema:
-        if self._schema is None:
-            self._schema = Schema(client=self)
-        return self._schema
+    def schema(self, strict: bool = False) -> Schema:
+        return Schema(client=self, strict=strict)

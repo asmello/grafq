@@ -14,9 +14,30 @@ def _indent(text: str):
 
 
 # Need to distinguish from None for optional fields
-class Null:
+class NullType:
     def __str__(self):
         return "null"
+
+
+Null = NullType()
+
+
+@dataclass(frozen=True, order=True)
+class ID:
+    value: str
+
+    def __str__(self):
+        return f'"{self.value}"'
+
+
+@dataclass(frozen=True, order=True)
+class ScalarExtension:
+    """To be used by library users for type checking scalar extensions."""
+
+    value: Union[str, int, float, bool, ID]
+
+    def __str__(self):
+        return _str(self.value)
 
 
 @dataclass(frozen=True, order=True)
@@ -36,7 +57,7 @@ class VarRef:
 
 
 ValueRawType = Union[
-    str, int, float, bool, Null, Enum, list[Value], dict[str, Value], VarRef
+    str, int, float, bool, NullType, Enum, list[Value], dict[str, Value], VarRef
 ]
 
 

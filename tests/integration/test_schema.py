@@ -3,6 +3,7 @@ from unittest import TestCase, main, skipIf
 
 from grafq import Field
 from grafq.client import Client
+from grafq.language import ID, Null, ScalarExtension
 
 
 @skipIf(
@@ -21,7 +22,8 @@ class TestSchema(TestCase):
         cls.repo_owner = repo_parts[0]
         cls.repo_name = repo_parts[1]
         cls.client = Client(url, token)
-        cls.schema = cls.client.schema
+        cls.schema = cls.client.schema()
+        cls.strict_schema = cls.client.schema(strict=True)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -65,6 +67,81 @@ class TestSchema(TestCase):
             'repository(name:"foo",owner:"bar"){name}',
             str(selection.root().build()),
         )
+
+    def test_id_type(self):
+        selection = self.schema.node(id=ID("R_kgDOGQovbg")).id
+        self.assertEqual(
+            'node(id:"R_kgDOGQovbg"){id}',
+            str(selection.root().build()),
+        )
+
+    def test_strict_id_type(self):
+        with self.assertRaises(TypeError):
+            _ = self.strict_schema.node(id="R_kgDOGQovbg").id
+
+    def test_id_type_coercion(self):
+        selection = self.schema.node(id="R_kgDOGQovbg").id
+        self.assertEqual(
+            'node(id:"R_kgDOGQovbg"){id}',
+            str(selection.root().build()),
+        )
+
+    def test_int_type(self):
+        selection = self.schema.viewer.avatarUrl(size=200)
+        self.assertEqual(
+            "viewer{avatarUrl(size:200)}",
+            str(selection.root().build()),
+        )
+
+    def test_boolean_type(self):
+        selection = self.schema.rateLimit(dryRun=True)
+        self.assertEqual(
+            "rateLimit(dryRun:true)",
+            str(selection.root().build()),
+        )
+
+    def test_list_type(self):
+        selection = self.schema.nodes(ids=[ID("R_kgDOGQovbg")]).id
+        self.assertEqual(
+            'nodes(ids:["R_kgDOGQovbg"]){id}',
+            str(selection.root().build()),
+        )
+
+    def test_null_check(self):
+        with self.assertRaises(TypeError):
+            _ = self.schema.node(id=None).id
+        with self.assertRaises(TypeError):
+            _ = self.schema.node(id=Null).id
+
+    def test_complex_arguments(self):
+        selection = self.schema.viewer.pullRequests(
+            states=["OPEN"], after="foobar", first=10, labels=["test"]
+        ).totalCount
+        self.assertEqual(
+            'viewer{pullRequests(states:["OPEN"],after:"foobar",first:10,labels:["test"]){totalCount}}',
+            str(selection.root().build()),
+        )
+
+    def test_extension_type(self):
+        selection = self.schema.resource(url="https://github.com/").url
+        self.assertEqual(
+            'resource(url:"https://github.com/"){url}',
+            str(selection.root().build()),
+        )
+
+    def test_strict_extension_type(self):
+        class URI(ScalarExtension):
+            pass
+
+        selection = self.strict_schema.resource(url=URI("https://github.com/")).url
+        self.assertEqual(
+            'resource(url:"https://github.com/"){url}',
+            str(selection.root().build()),
+        )
+
+    def test_strict_extension_type_validation(self):
+        with self.assertRaises(TypeError):
+            _ = self.strict_schema.resource(url="https://github.com/").url
 
     def test_select(self):
         selection = self.schema.repository(name="foo", owner="bar").select(
